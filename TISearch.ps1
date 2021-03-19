@@ -3,8 +3,8 @@
 
 $ApiKey_VT=''
 $ApiKey_AbuseIPDB=''
-$APIKey_WhoisXML=''
-$APIKey_Ipinfo=''
+#$APIKey_WhoisXML=''
+#$APIKey_Ipinfo=''
 
 # ===============================================================
 function Search-VirusTotal-Web { # Search VirusTotal for Web Matches
@@ -16,11 +16,9 @@ function Search-VirusTotal-Web { # Search VirusTotal for Web Matches
 	Write-Host '   VirusTotal Data:'
 	Write-Host
 	if ($httpResponse.response_code -eq 0) {
-		Write-Host -BackgroundColor DarkRed -ForegroundColor Black '---- Error : URL not found ----'
-		Write-Host
+		Show-Error ('Data not found')
 		Return
 	}
-	
 	Write-Host '   URL . . . . . . . . . . . . . :'$httpResponse.url
 	if ($httpResponse.positives -gt 0 ) { 
 		$ReportMessage = '   Detections. . . . . . . . . . : '+$httpResponse.positives+'/'+$httpResponse.total
@@ -42,9 +40,8 @@ function Search-VirusTotal-Web { # Search VirusTotal for Web Matches
 		}
 	}
 	Write-Host
-	
-	
-}
+} # End of function Search-VirusTotal-Web
+
 function Search-VirusTotal-Hash { # Search VirusTotal for File Hash Matches
 
 	Param($query)
@@ -55,8 +52,7 @@ function Search-VirusTotal-Hash { # Search VirusTotal for File Hash Matches
 	Write-Host
 
 	if ($httpResponse.response_code -eq 0) {
-		Write-Host -BackgroundColor DarkRed -ForegroundColor Black '---- Error : Hash not found ----'
-		Write-Host
+		Show-Error ('Data not found')
 		Return
 	}
 
@@ -84,10 +80,9 @@ function Search-VirusTotal-Hash { # Search VirusTotal for File Hash Matches
 		}
 	}
 	Write-Host
-	
-}
+} # End of function Search-VirusTotal-Hash
 
-function Search-AbuseIPDB {
+function Search-AbuseIPDB { # Search AbuseIPDB for IP Matches
 	
 	Param($query)
 	$body = @{
@@ -125,7 +120,8 @@ function Search-AbuseIPDB {
 	Write-Host '   Last Reported on. . . . . . . :'$httpResponse.data.lastReportedAt
 	Write-Host
 
-}
+} # End of function Search-AbuseIPDB
+
 function Show-Help {
 
 	Write-Host
@@ -138,82 +134,46 @@ function Show-Help {
 	Write-Host -ForegroundColor Yellow '                *Supported Formats (.txt, .csv, .html)'
 	Write-Host -ForegroundColor Yellow '-v  --verbose   Show verbose search results'
 	Write-Host
-	Write-Host -ForegroundColor Yellow 'Sample Usage:   > TISearch.ps1 www.google.com'
+	Write-Host -ForegroundColor Yellow 'Sample Usage:   > TISearch.ps1 https://www.google.com'
 	Write-Host -ForegroundColor Yellow 'Sample Usage:   > TISearch.ps1 8.8.8.8'
 	Write-Host -ForegroundColor Yellow 'Sample Usage:   > TISearch.ps1 b10a8db164e0754105b7a99be72e3fe5'
 	Write-Host
 
-}
+} # function Show-Help
+
 function Show-Error {
 
+	Param ($ErrorMessage)
 	Write-Host
-	Write-Host '   ' -NoNewline
-	Write-Host -BackgroundColor DarkRed -ForegroundColor Black '---- Error : Incorrect Input Parameters : ----'
-	Show-Help
+	Write-Host -ForegroundColor Red '   Error :' $ErrorMessage
+	Write-Host -ForegroundColor Red '   Use <-h> or <--help> to show help '
+	Write-Host
 	
+} # End of function Show-Error
+
+function Search-IP {
+
+	Param ($query)
+	Search-AbuseIPDB($query)
+	Search-VirusTotal-Web($query)
+	Exit
 }
 
-function Invoke-SearchParam-Check{
-	Param([string]$SearchParam)
+function Search-URL {
 
+	Param ($query)
+	Search-VirusTotal-Web($query)
+	Exit
 }
 
+function Search-Hash {
+
+	Param ($query)
+	Search-VirusTotal-Hash($query)
+	Exit
+
+}
 function Initialize-Argument {
-
-	Param([array]$LocalArgs)
-	$SearchArgument=0
-	$SearchOperators=@('-u','-i','-f','--url','--ip','--file')
-	#$ProcessOperators=@('-o','--output','-l','--list')
-	$AllOperators=@('-u','-i','-f','--url','--ip','--file','-o','--output','-l','--list')
-
-	# Search Argument Assignment
-	# -u --url  >> 1
-	# -i --ip   >> 2
-	# -f --file >> 3
-
-	Write-Host
-	for ($i=0; $i -lt $LocalArgs.Length; $i++) {
-
-		# Detecting unacceptable case (1): More than one search operator found (ie. -u www.google.com -i 1.1.1.1)
-		if ($LocalArgs[$i] -in $SearchOperators) { 
-			for ($j=$i+1; $j -lt $LocalArgs.Length; $j++) {
-				if ($LocalArgs[$j] -in $SearchOperators) {
-					Show-Error
-					Return
-				}
-			}
-		} # Finished detecting unacceptable case (1) 
-
-		# Detecting unacceptable case (2): More than one argument found after an operator (ie. -u www.google.com www.bing.com)
-		
-		if ($LocalArgs[$i] -in $AllOperators) {
-			if (($i+2 -lt $LocalArgs.Length) -and ( -not ($LocalArgs[$i+2] -in $AllOperators))) {
-				Show-Error
-				Return
-			}
-		} # Finished detecting unacceptable case (2)
-
-		Switch ($LocalArgs[$i]) {
-			'-u'{
-				$SearchArgument 
-			}
-			'--url'{$SearchArgument = 1}
-			'-i'{$SearchArgument = 2}
-			'--ip'{$SearchArgument = 2}
-			'-f'{$SearchArgument = 3}
-			'--file'{$SearchArgument = 3}
-			'-l' {$InputParam=$LocalArgs[$i+1]}
-			'--list' {$InputParam=$LocalArgs[$i+1]}
-			'-o' {$OutputParam=$LocalArgs[$i+1]}
-			'--output' {$OutputParam=$LocalArgs[$i+1]}
-
-		}
-	
-	}
-
-}
-
-function Initialize-Argument-New {
 
 	Param([array]$LocalArgs)
 	function isIP {
@@ -223,8 +183,7 @@ function Initialize-Argument-New {
 
 	function isURL { # isURL will return true for IP, but not vice versa. So do isIP first.
 		Param($SearchArgument)
-		$SearchArgumentParsed=($SearchArgument -as [System.URI]).AbsoluteURI
-		return [boolean]($SearchArgumentParsed -ne '')
+		return [boolean](($SearchArgument.Substring(0,7) -eq 'http://') -or ($SearchArgument.Substring(0,8) -eq 'https://'))
 	} # End of isURL
 	
 	function isHash {
@@ -242,72 +201,73 @@ function Initialize-Argument-New {
 		return $true
 	} # End of isHash
 
-	# ---------------- Argument Parsing ----------------
-
-	$ProcessOperators = @('-h','--help','-i','--input','-o','--output','-v','--verbose')
-	<#	
-		-SearchType Assignment
-		Undeclared - 0
-		IP - 1
-		URL - 2
-		Hash - 3
-	#>
-	$SearchType = 0
-
-	<#
-		-function Search-Duplicate
-	    Called when ProcessOperator is found.
-	    Loops through arguments after that ProcessOperator to check if it's called again
-	    ie. -i source.txt url.txt  (duplicate)
-	#>
-	function Search-Duplicate {
-
-		Param([string]$SearchOperator1, [string]$SearchOperator2, [int]$startPos)
-
-
-	}
+	# ================================ Argument Parsing  ================================
 	
-	for ($i=0; $i -lt $LocalArgs.Length; $i++) {
-		if ($LocalArgs[$i] -in $ProcessOperators) {
+	#$isVerbose=$false
+
+	for ($i=0; $i -lt $LocalArgs.Length; $i++) { # Iterate through all arguments 
+		
+		if (($LocalArgs[$i].Substring(0,1) -eq '-') -or ($LocalArgs[$i].Substring(0,2) -eq '--')) { # Check if Argument is operator (- or --)
 			
-		}
+			switch ($LocalArgs[$i]){ # Operator Parsing
 
-	}
+				'-h' {
+					Show-Help
+					Exit
+				}
+				'--help' {
+					Show-Help
+					Exit
+				}
+				'-i' {
+					Write-Host -ForegroundColor Red 'Input Function in Development, Exiting...'
+					Exit
+				}
+				'--input' {
+					Write-Host -ForegroundColor Red 'Input Function in Development, Exiting...'
+					Exit
+				}
+				'-o' {
+					Write-Host -ForegroundColor Red 'Output Function in Development, Exiting...'
+					Exit
+				}
+				'--output'{
+					Write-Host -ForegroundColor Red 'Output Function in Development, Exiting...'
+					Exit
+				}
+				'-v'{
+					#$isVerbose=$true
+				}
+				'--verbose' {
+					#$isVerbose=$true
+				}
+				default {
+					$ErrorMessage = 'This command is not valid : '+$LocalArgs[$i]
+					Show-Error($ErrorMessage)
+					Exit
+				}
+			}
+		} else { # Check if Argument is IP, URL or Hash
 
-	# ---------------- End of Argument Parsing ---------
-
-	
-	
-
-}
-
-
-# --------------------------- Execution --------------------------->
-
-
-#Search-VirusTotal-Hash($args[0])
-#Search-AbuseIPDB($args[0])
-#Search-VirusTotal-Web($args[0])
-#Search-Whois($args[0])
-#Initialize-Argument($args)
-#Initialize-Argument-New($args)
-Show-Help
+			if (isIP($LocalArgs[$i])) { # Search IP
+				Search-IP($LocalArgs[$i])
+			} elseif (isURL($LocalArgs[$i])) { # Search URL
+				Search-URL($LocalArgs[$i])
+			} elseif (isHash($LocalArgs[$i])) { # Search Hash
+				Search-Hash($LocalArgs[$i])
+			} else {
+				$ErrorMessage = 'This argument is not valid : '+$LocalArgs[$i]
+				Show-Error($ErrorMessage)
+				Exit
+			} 
+		} # End of Checking if Argument is IP, URL or Hash
+	} # End of Argument Iteration
+} # End of function Initialize-Argument
 
 
-# -----------------------------------------------------------------<
 
-<# -------------------------- Recylcing --------------------------->
+# ================================ Execution  ================================
 
+Initialize-Argument ($args)
 
-foreach ($i in $args) {
-	Write-Host $i
-}
-
-
-foreach( $item in $httpResponse.psobject.properties )
-{
-	$message = $item.name+' '+$item.value
-	Write-Host $message
-}
-
------------------------------------------------------------------#>
+# ============================================================================
