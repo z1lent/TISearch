@@ -21,7 +21,7 @@ You can query an URL, an IPs or a hash by passing an it to the PowerShell script
 
 TISearch relies on a variety of threat intelligence database **API keys** to function properly. The selected databases offer **free** API query services.
 
-***For license compliance, I am not at liberty to share my API keys.* **All that is required is to create your personal accounts on these services. Please follow the below guide to do so.
+**For license compliance, I am not at liberty to share my API keys.** All that is required for you is to create your personal accounts on these services. Please follow the below guide to do so.
 
 After getting the API Keys, please look to the top 10 lines of the script and paste them into the corresponding variable.
 
